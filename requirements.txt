@@ -1,0 +1,8 @@
+streamlit
+pillow
+pytesseract
+requests
+easyocr
+opencv-python-headless
+kagglehub
+pandas
