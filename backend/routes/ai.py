@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from services.ollama_service import ask_ollama
+from services.ai_service import ask_ai
 
 router = APIRouter(
     prefix="/ai",
@@ -15,5 +15,5 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat")
 def chat(data: ChatRequest):
-    answer = ask_ollama(data.question)
+    answer = ask_ai(data.question)
     return {"answer": answer}

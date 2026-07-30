@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from services.ocr_service import extract_text_from_image, guess_medicine_name
 from services.medicine_service import search_local
-from services.ollama_service import ask_ollama
+from services.ai_service import ask_ai
 
 router = APIRouter(
     prefix="/scan",
@@ -39,7 +39,15 @@ async def scan_image(file: UploadFile = File(...), db: Session = Depends(get_db)
             "ai_answer": None,
         }
 
-    ai_answer = ask_ollama(guessed_name)
+    prompt = (
+        "You are a medical information assistant. A user scanned a medicine "
+        f"packet and the detected name is: '{guessed_name}'. "
+        "Give a short, clear summary covering: what it is likely used for, "
+        "common side effects, and who should avoid it. "
+        "If you are not confident this is a real medicine, say so plainly "
+        "instead of guessing."
+    )
+    ai_answer = ask_ai(prompt)
     return {
         "source": "ai",
         "ocr_text": ocr_text,

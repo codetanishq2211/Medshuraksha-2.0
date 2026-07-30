@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Change this to your PC's current IP address
-  static const String baseUrl = "http://10.229.113.41:8000";
+  // Deployed backend on Render - works from anywhere, no laptop needed
+  static const String baseUrl = "https://medshuraksha-2-0.onrender.com";
 
   // ===============================
   // Search Medicines

@@ -1,31 +1,41 @@
-import io
+import os
 import re
-import numpy as np
-from PIL import Image
-import easyocr
+import requests
 
-# Loaded once and reused - building the reader is the slow part (loads the
-# recognition model), so we don't want to do it on every request.
-_reader = None
-
-
-def _get_reader():
-    global _reader
-    if _reader is None:
-        _reader = easyocr.Reader(["en"], gpu=False)
-    return _reader
+# Get a free key at https://ocr.space/ocrapi/freekey (no card required)
+# "helloworld" is OCR.space's public demo key - works but has a low rate
+# limit, so replace it with your own for real use.
+OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY", "helloworld")
+OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 
 
 def extract_text_from_image(image_bytes: bytes) -> str:
-    """Run OCR on raw image bytes and return the raw extracted text."""
-    image = Image.open(io.BytesIO(image_bytes))
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-    image_np = np.array(image)
+    """Send the image to OCR.space's hosted OCR API and return extracted text."""
+    try:
+        response = requests.post(
+            OCR_SPACE_URL,
+            files={"file": ("image.jpg", image_bytes)},
+            data={
+                "apikey": OCR_SPACE_API_KEY,
+                "language": "eng",
+                "OCREngine": 2,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        result = response.json()
 
-    reader = _get_reader()
-    lines = reader.readtext(image_np, detail=0)
-    return "\n".join(lines).strip()
+        if result.get("IsErroredOnProcessing"):
+            error_msg = result.get("ErrorMessage", ["Unknown OCR error"])
+            raise RuntimeError(f"OCR.space error: {error_msg}")
+
+        parsed_results = result.get("ParsedResults") or []
+        if not parsed_results:
+            return ""
+
+        return parsed_results[0].get("ParsedText", "").strip()
+    except requests.RequestException as e:
+        raise RuntimeError(f"OCR request failed: {e}")
 
 
 def guess_medicine_name(ocr_text: str) -> str:
