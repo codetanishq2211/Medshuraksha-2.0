@@ -1,41 +1,14 @@
-import os
 import re
-import requests
 
-# Get a free key at https://ocr.space/ocrapi/freekey (no card required)
-# "helloworld" is OCR.space's public demo key - works but has a low rate
-# limit, so replace it with your own for real use.
-OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY", "helloworld")
-OCR_SPACE_URL = "https://api.ocr.space/parse/image"
+from services.gemini_service import vision_ocr
 
 
 def extract_text_from_image(image_bytes: bytes) -> str:
-    """Send the image to OCR.space's hosted OCR API and return extracted text."""
+    """Send the image to Gemini Vision for OCR and return extracted text."""
     try:
-        response = requests.post(
-            OCR_SPACE_URL,
-            files={"file": ("image.jpg", image_bytes)},
-            data={
-                "apikey": OCR_SPACE_API_KEY,
-                "language": "eng",
-                "OCREngine": 2,
-            },
-            timeout=30,
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if result.get("IsErroredOnProcessing"):
-            error_msg = result.get("ErrorMessage", ["Unknown OCR error"])
-            raise RuntimeError(f"OCR.space error: {error_msg}")
-
-        parsed_results = result.get("ParsedResults") or []
-        if not parsed_results:
-            return ""
-
-        return parsed_results[0].get("ParsedText", "").strip()
-    except requests.RequestException as e:
-        raise RuntimeError(f"OCR request failed: {e}")
+        return vision_ocr(image_bytes)
+    except Exception as e:
+        raise RuntimeError(f"Gemini OCR failed: {e}")
 
 
 def guess_medicine_name(ocr_text: str) -> str:

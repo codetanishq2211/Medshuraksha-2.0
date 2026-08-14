@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "440643406379",
+    "project_id": "medshuraksha",
+    "storage_bucket": "medshuraksha.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:440643406379:android:71110e43a6780dbf9ab86e",
+        "android_client_info": {
+          "package_name": "com.example.medsuraksha_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaaXaJH5hFyFjwvIeIZjwUBNxe2msubFo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

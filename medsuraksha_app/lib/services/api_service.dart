@@ -14,9 +14,6 @@ class ApiService {
         Uri.parse("$baseUrl/search?q=$query"),
       );
 
-      print("STATUS = ${response.statusCode}");
-      print("BODY = ${response.body}");
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as List<dynamic>;
       } else {
@@ -87,6 +84,64 @@ class ApiService {
       }
     } catch (e) {
       throw Exception("Upload Error: $e");
+    }
+  }
+
+  // ===============================
+  // Profile
+  // ===============================
+
+  /// Returns the profile map, or null if this user hasn't set one up yet
+  /// (backend returns 404 in that case).
+  static Future<Map<String, dynamic>?> getProfile(String firebaseUid) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/profile/$firebaseUid"),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        throw Exception(
+          "Profile fetch failed (${response.statusCode}): ${response.body}",
+        );
+      }
+    } catch (e) {
+      throw Exception("Error fetching profile: $e");
+    }
+  }
+
+  /// Creates or updates the profile for [firebaseUid].
+  /// [dateOfBirth] must be in "YYYY-MM-DD" format.
+  static Future<Map<String, dynamic>> saveProfile({
+    required String firebaseUid,
+    String? phoneNumber,
+    String? name,
+    String? dateOfBirth,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/profile"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "firebase_uid": firebaseUid,
+          "phone_number": phoneNumber,
+          "name": name,
+          "date_of_birth": dateOfBirth,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception(
+          "Profile save failed (${response.statusCode}): ${response.body}",
+        );
+      }
+    } catch (e) {
+      throw Exception("Error saving profile: $e");
     }
   }
 

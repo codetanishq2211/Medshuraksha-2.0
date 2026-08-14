@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'scan_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final String? userName;
+
+  const MainScreen({super.key, this.userName});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-
   int currentIndex = 0;
 
-  final pages = const [
-    HomeScreen(),
-    Center(child: Text("History", style: TextStyle(color: Colors.white))),
-    Center(child: Text("AI Assistant", style: TextStyle(color: Colors.white))),
-    Center(child: Text("Profile", style: TextStyle(color: Colors.white))),
-  ];
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+    pages = [
+      HomeScreen(userName: widget.userName),
+      const Center(child: Text("History", style: TextStyle(color: Colors.white))),
+      const Center(child: Text("AI Assistant", style: TextStyle(color: Colors.white))),
+      const Center(child: Text("Profile", style: TextStyle(color: Colors.white))),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +38,9 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.greenAccent,
         child: const Icon(Icons.qr_code_scanner,color: Colors.black),
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Scanner coming next 🚀"),
-            ),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ScanScreen()),
           );
         },
       ),
