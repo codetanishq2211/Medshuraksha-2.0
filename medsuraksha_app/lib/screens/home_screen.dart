@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'medicine_details_screen.dart';
 import 'medicine_ai_result_screen.dart';
-import 'scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? userName;
@@ -46,6 +47,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<dynamic> medicines = [];
   bool isLoading = false;
+  bool isScanning = false;
+  String userName = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.userName != null && widget.userName!.trim().isNotEmpty) {
+      userName = widget.userName!;
+    } else {
+      _loadProfileName();
+    }
+  }
+
+  Future<void> _loadProfileName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('user_name');
+    if (!mounted) return;
+    if (savedName != null && savedName.trim().isNotEmpty) {
+      setState(() {
+        userName = savedName;
+      });
+    }
+  }
 
   // Session-only activity tracking (resets on app restart - no backend
   // history endpoint wired up yet)
@@ -79,11 +103,110 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _openScanner() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ScanScreen()),
+  Future<void> _scanMedicine() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Icon(Icons.photo_camera, color: primaryContainer),
+                title: const Text("Take a photo", style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: primaryContainer),
+                title: const Text("Choose from gallery", style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
     );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: source, imageQuality: 85);
+    if (picked == null) return;
+
+    setState(() {
+      isScanning = true;
+    });
+
+    try {
+      final result = await ApiService.uploadMedicineImage(picked.path);
+      if (!mounted) return;
+      setState(() {
+        isScanning = false;
+      });
+
+      final resultSource = result["source"];
+
+      if (resultSource == "database") {
+        final matches = (result["matches"] as List<dynamic>?) ?? [];
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          setState(() {
+            recentActivity.insert(
+              0,
+              _RecentActivity(
+                name: match["name"]?.toString() ?? "Unknown",
+                approved: match["approved"] == true,
+                medicine: match,
+              ),
+            );
+          });
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MedicineDetailsScreen(medicine: match)),
+          );
+        } else {
+          _showSnack("No match found in database.");
+        }
+      } else if (resultSource == "ai") {
+        final guessedName = result["guessed_name"]?.toString() ?? "Unknown";
+        final aiAnswer = result["ai_answer"]?.toString() ?? "No response from AI.";
+        setState(() {
+          recentActivity.insert(
+            0,
+            _RecentActivity(name: guessedName, approved: false, aiAnswer: aiAnswer),
+          );
+        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MedicineAiResultScreen(guessedName: guessedName, aiAnswer: aiAnswer),
+          ),
+        );
+      } else {
+        _showSnack("Couldn't read the label clearly. Try a clearer photo.");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isScanning = false;
+      });
+      _showSnack("Scan failed: $e");
+    }
   }
 
   void _showSnack(String message) {
@@ -145,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
             right: 16,
             bottom: 96,
             child: GestureDetector(
-              onTap: _openScanner,
+              onTap: isScanning ? null : _scanMedicine,
               child: Container(
                 width: 64,
                 height: 64,
@@ -160,7 +283,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.photo_camera, color: onPrimaryContainer, size: 32),
+                child: isScanning
+                    ? const Padding(
+                        padding: EdgeInsets.all(18),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: onPrimaryContainer,
+                        ),
+                      )
+                    : const Icon(Icons.photo_camera, color: onPrimaryContainer, size: 32),
               ),
             ),
           ),
@@ -217,18 +348,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String get _displayName {
-    final value = widget.userName;
-    return (value != null && value.trim().isNotEmpty) ? value.trim() : "User";
-  }
-
   // ---------------------------- greeting
   Widget _greeting() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Hello, $_displayName",
+          "Hello, $userName",
           style: const TextStyle(color: onSurface, fontSize: 20, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
@@ -441,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 20),
         ElevatedButton.icon(
-          onPressed: _openScanner,
+          onPressed: isScanning ? null : _scanMedicine,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryContainer,
             foregroundColor: onPrimaryContainer,

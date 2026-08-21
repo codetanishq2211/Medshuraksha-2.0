@@ -2,7 +2,9 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+    // TEMPORARILY DISABLED to test if Firebase/google-services is causing
+    // the missing libflutter.so issue. Re-enable once confirmed either way.
+    // id("com.google.gms.google-services")
 }
 
 android {
