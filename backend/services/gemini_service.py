@@ -3,8 +3,8 @@ import os
 import requests
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-2.5-flash")
-GEMINI_VISION_MODEL = os.getenv("GEMINI_VISION_MODEL", "gemini-2.5-flash")
+GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-flash-latest")
+GEMINI_VISION_MODEL = os.getenv("GEMINI_VISION_MODEL", "gemini-flash-latest")
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
