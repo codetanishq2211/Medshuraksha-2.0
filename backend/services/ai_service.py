@@ -1,10 +1,84 @@
 import os
+import re
+
 import requests
 
 # Get a free API key at https://console.groq.com/keys (no credit card required)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+MEDSHURAKSHA_TOPIC_KEYWORDS = [
+    "medshuraksha",
+    "medicine",
+    "medicines",
+    "drug",
+    "drugs",
+    "tablet",
+    "tablets",
+    "capsule",
+    "capsules",
+    "syrup",
+    "injection",
+    "dosage",
+    "dose",
+    "prescription",
+    "side effect",
+    "side effects",
+    "allergy",
+    "allergies",
+    "symptom",
+    "symptoms",
+    "condition",
+    "medical",
+    "health",
+    "pharmacy",
+    "pharmacist",
+    "doctor",
+    "treatment",
+    "diagnosis",
+    "interaction",
+    "contraindication",
+    "safe to take",
+    "safe for",
+    "approved",
+    "verify medicine",
+    "scan medicine",
+    "scan prescription",
+    "profile",
+    "app",
+]
+
+BLOCKED_GENERIC_PATTERNS = [
+    "python",
+    "javascript",
+    "java",
+    "c++",
+    "sql",
+    "write code",
+    "code to",
+    "debug this",
+    "fix this bug",
+    "explain the logic",
+    "break down the logic",
+    "algorithm",
+    "recursive",
+    "function definition",
+    "for loop",
+    "while loop",
+    "class in python",
+    "web development",
+    "software engineering",
+    "solve this problem",
+    "reasoning",
+    "math problem",
+    "equation",
+    "prove that",
+    "debug my code",
+    "write a script",
+    "generate code",
+    "programming",
+]
 
 SYSTEM_PROMPT = """You are MedShuraksha AI, the built-in assistant inside the MedShuraksha app.
 
@@ -33,7 +107,27 @@ Your role in conversation:
 """
 
 
+def is_medshuraksha_related(question: str) -> bool:
+    if not question or not question.strip():
+        return False
+
+    normalized = re.sub(r"\s+", " ", question.strip().lower())
+    if not normalized:
+        return False
+
+    if any(pattern in normalized for pattern in BLOCKED_GENERIC_PATTERNS):
+        return False
+
+    return any(keyword in normalized for keyword in MEDSHURAKSHA_TOPIC_KEYWORDS)
+
+
 def ask_ai(question: str) -> str:
+    if not is_medshuraksha_related(question):
+        return (
+            "I can help with medicine information and MedShuraksha app features only. "
+            "Ask about a medicine, side effects, dosage, safety, prescriptions, or how the app works."
+        )
+
     if not GROQ_API_KEY:
         return "AI lookup is not configured: missing GROQ_API_KEY."
 
