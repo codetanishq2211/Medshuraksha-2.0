@@ -19,3 +19,11 @@ def test_register_and_list_user():
     assert list_response.status_code == 200, list_response.text
     names = [item["name"] for item in list_response.json()]
     assert "Alice" in names
+
+
+def test_database_health_reports_users_table():
+    response = client.get("/health/database")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["database_url_configured"] is True
+    assert response.json()["users_table_exists"] is True
