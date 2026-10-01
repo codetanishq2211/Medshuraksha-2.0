@@ -5,6 +5,7 @@ pillow
 pytesseract
 requests
 psycopg2-binary
+psycopg[binary]
 pydantic
 python-dotenv
 sqlalchemy
