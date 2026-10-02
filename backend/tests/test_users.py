@@ -26,4 +26,5 @@ def test_database_health_reports_users_table():
 
     assert response.status_code == 200, response.text
     assert response.json()["database_url_configured"] is True
+    assert "database_host" in response.json()
     assert response.json()["users_table_exists"] is True

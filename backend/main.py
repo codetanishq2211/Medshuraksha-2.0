@@ -43,6 +43,7 @@ def database_health():
         return {
             "status": "ok",
             "provider": provider,
+            "database_host": host or None,
             "database_name": engine.url.database,
             "database_url_configured": bool(os.getenv("DATABASE_URL")),
             "users_table_exists": users_table_exists,
